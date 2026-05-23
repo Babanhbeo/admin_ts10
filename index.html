@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Lý Bài Viết Giáo Dục</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+
+  <div id="login-view" class="flex items-center justify-center min-h-screen px-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Hệ Thống Quản Trị</h2>
+        <p class="text-sm text-gray-500 mt-1">Vui lòng đăng nhập để tiếp tục tác vụ</p>
+      </div>
+      <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Tài khoản</label>
+          <input type="text" id="username" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Mật khẩu</label>
+          <input type="password" id="password" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md">
+          Đăng Nhập
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="admin-view" class="hidden container mx-auto px-4 py-8 max-w-6xl">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5 mb-8">
+      <div>
+        <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Dashboard Quản Lý Bài Viết</h1>
+        <p class="text-gray-500 mt-1">Cập nhật nội dung đồng bộ trực tiếp với Google Sheets</p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="openModal('add')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg transition shadow flex items-center gap-2 cursor-pointer">
+          ➕ Viết Bài Mới
+        </button>
+        <button onclick="handleLogout()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2.5 rounded-lg transition cursor-pointer">
+          Đăng xuất
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-400 uppercase">Trạng thái API</p>
+          <h3 class="text-xl font-bold text-emerald-600 mt-1 flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Sẵn sàng
+          </h3>
+        </div>
+      </div>
+      <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-400 uppercase">Tổng số bài viết</p>
+          <h3 id="total-posts" class="text-2xl font-black text-gray-800 mt-1">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50 text-gray-600 text-xs font-bold uppercase border-b border-gray-200">
+              <th class="p-4 w-24">Môn Học</th>
+              <th class="p-4">Tiêu Đề</th>
+              <th class="p-4 hidden md:table-cell">Ngày Đăng</th>
+              <th class="p-4 hidden lg:table-cell">Liên Kết Ngoài</th>
+              <th class="p-4 text-center w-28">Thao Tác</th>
+            </tr>
+          </thead>
+          <tbody id="article-table-body" class="divide-y divide-gray-100 text-sm">
+            <tr>
+              <td colspan="5" class="p-8 text-center text-gray-400">Đang tải dữ liệu từ bộ nhớ đám mây...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="article-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-100">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+        <h3 id="modal-title" class="text-lg font-bold text-gray-900">Form Bài Viết</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+      </div>
+      <form id="form-article" onsubmit="handleSaveArticle(event)" class="p-6 space-y-4">
+        <input type="hidden" id="post-id">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Môn học / Phân loại</label>
+            <input type="text" id="post-subject" required placeholder="Ví dụ: Vật Lý, Toán, Tin Học" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Ngày tháng</label>
+            <input type="text" id="post-date" required class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none" placeholder="DD/MM/YYYY">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Tiêu đề bài viết</label>
+          <input type="text" id="post-title" required placeholder="Nhập tiêu đề hấp dẫn..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nội dung chi tiết</label>
+          <textarea id="post-content" rows="5" required placeholder="Viết nội dung bài viết tại đây..." class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Đường dẫn liên kết ngoài (Link gắn kèm)</label>
+          <input type="url" id="post-link" placeholder="https://example.com/tai-lieu-dinh-kem" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-blue-600">
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2">
+          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Đính kèm tài liệu (PDF, Word, Excel, Hình ảnh...)</label>
+          <input type="file" id="post-file-input" onchange="handleFileProcessing(event)" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 file:cursor-pointer hover:file:bg-blue-100">
+          
+          <p id="file-status-label" class="text-xs text-gray-400 italic pt-1">Chưa có file nào được đính kèm.</p>
+          
+          <input type="hidden" id="post-filename">
+          <input type="hidden" id="post-filedata">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm cursor-pointer">Hủy</button>
+          <button type="submit" id="btn-submit-form" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition shadow-md text-sm cursor-pointer">Lưu Dữ Liệu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbz4eW1zM4yqFmKAYRVT5p7dSvuRydJofBaHf7lzEYpbHHVooOdwsQxNXE4_VVJNSFQt/exec";
+    
+    let currentAction = "add"; 
+    let allArticles = [];
+
+    window.onload = function() {
+      if (localStorage.getItem("admin_token")) { showAdminPanel(); } else { showLoginPanel(); }
+    };
+
+    function showLoginPanel() {
+      document.getElementById("login-view").classList.remove("hidden");
+      document.getElementById("admin-view").classList.add("hidden");
+    }
+
+    function showAdminPanel() {
+      document.getElementById("login-view").classList.add("hidden");
+      document.getElementById("admin-view").classList.remove("hidden");
+      loadArticles();
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+      try {
+        const url = `${API_URL}?action=login&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.result === "success") {
+          localStorage.setItem("admin_token", data.token);
+          alert("Đăng nhập thành công!");
+          showAdminPanel();
+        } else { alert(data.message || "Đăng nhập thất bại"); }
+      } catch (err) { alert("Không thể kết nối đến Apps Script API."); }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem("admin_token");
+      showLoginPanel();
+    }
+
+    async function loadArticles() {
+      const tbody = document.getElementById("article-table-body");
+      tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-blue-600 font-medium">🔄 Đang tải dữ liệu thời gian thực...</td></tr>`;
+      try {
+        const response = await fetch(`${API_URL}?action=read`);
+        allArticles = await response.json();
+        document.getElementById("total-posts").innerText = allArticles.length;
+        if(allArticles.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400">Bảng tính trống. Hãy thêm bài viết đầu tiên!</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = "";
+        allArticles.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.className = "hover:bg-gray-50 transition";
+          tr.innerHTML = `
+            <td class="p-4 font-semibold text-blue-700">${escapeHtml(item.subject)}</td>
+            <td class="p-4">
+              <div class="font-bold text-gray-900">${escapeHtml(item.title)}</div>
+              <div class="text-xs text-gray-400 line-clamp-1 mt-0.5">${escapeHtml(item.content)}</div>
+            </td>
+            <td class="p-4 text-gray-500 hidden md:table-cell whitespace-nowrap">${escapeHtml(item.date)}</td>
+            <td class="p-4 hidden lg:table-cell max-w-xs truncate">
+              ${item.link ? `<a href="${item.link}" target="_blank" class="text-blue-500 hover:underline text-xs flex items-center gap-1">🔗 Liên kết</a>` : '<span class="text-gray-300 italic text-xs">Không có</span>'}
+            </td>
+            <td class="p-4 text-center">
+              <button onclick="editClick('${item.id}')" class="bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold px-3 py-1.5 rounded-md border border-amber-200 transition text-xs cursor-pointer">Sửa</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Error loading articles:", err);
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">❌ Lỗi khi tải dữ liệu từ Sheets.</td></tr>`;
+      }
+    }
+
+    // Hàm mã hóa File đính kèm sang chuỗi Base64 gửi lên Sheets
+    function handleFileProcessing(e) {
+      const file = e.target.files[0];
+      const statusLabel = document.getElementById("file-status-label");
+      const nameInput = document.getElementById("post-filename");
+      const dataInput = document.getElementById("post-filedata");
+      const submitBtn = document.getElementById("btn-submit-form");
+
+      if (!file) {
+        statusLabel.innerText = "Chưa có file nào được đính kèm.";
+        nameInput.value = "";
+        dataInput.value = "";
+        return;
+      }
+
+      if (file.size > 15 * 1024 * 1024) {
+        alert("Kích thước file quá lớn! Vui lòng chọn tài liệu nhỏ hơn 15MB.");
+        e.target.value = "";
+        statusLabel.innerText = "❌ File bị từ chối do quá nặng (>15MB).";
+        return;
+      }
+
+      statusLabel.innerHTML = `<span class="text-amber-600 font-medium animate-pulse">⏳ Hệ thống đang mã hóa file... Vui lòng đợi.</span>`;
+      submitBtn.disabled = true;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        nameInput.value = file.name;
+        dataInput.value = event.target.result;
+        statusLabel.innerHTML = `<span class="text-emerald-600 font-medium">✅ Sẵn sàng: <b>${file.name}</b></span>`;
+        submitBtn.disabled = false;
+      };
+      
+      reader.onerror = function() {
+        alert("Đã xảy ra lỗi khi đọc cấu trúc file.");
+        submitBtn.disabled = false;
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    function openModal(action, id = '') {
+      currentAction = action;
+      document.getElementById("article-modal").classList.remove("hidden");
+      document.getElementById("form-article").reset();
+      document.getElementById("post-file-input").value = ""; 
+      document.getElementById("btn-submit-form").disabled = false;
+      
+      if (action === "add") {
+        document.getElementById("modal-title").innerText = "➕ VIẾT BÀI MỚI CHÈN VÀO SHEETS";
+        document.getElementById("post-id").value = "ID_" + Date.now();
+        document.getElementById("file-status-label").innerText = "Chưa có file nào được đính kèm.";
+        
+        const today = new Date();
+        document.getElementById("post-date").value = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+      } else {
+        document.getElementById("modal-title").innerText = "📝 CHỈNH SỬA CẬP NHẬT BÀI VIẾT";
+      }
+    }
+
+    function closeModal() { document.getElementById("article-modal").classList.add("hidden"); }
+
+    function editClick(id) {
+      const item = allArticles.find(a => a.id.toString() === id.toString());
+      if (!item) return;
+      openModal("edit");
+      document.getElementById("post-id").value = item.id;
+      document.getElementById("post-subject").value = item.subject;
+      document.getElementById("post-date").value = item.date;
+      document.getElementById("post-title").value = item.title;
+      document.getElementById("post-content").value = item.content;
+      document.getElementById("post-link").value = item.link || "";
+      document.getElementById("post-filename").value = item.fileName || "";
+      document.getElementById("post-filedata").value = item.fileData || "";
+      
+      if (item.fileName) {
+        document.getElementById("file-status-label").innerHTML = `📁 Hiện có: <b class="text-blue-600">${item.fileName}</b> (Tải file mới nếu muốn thay thế)`;
+      } else {
+        document.getElementById("file-status-label").innerText = "Bài viết này hiện chưa có file đính kèm.";
+      }
+    }
+
+    async function handleSaveArticle(e) {
+      e.preventDefault();
+      const token = localStorage.getItem("admin_token");
+      if(!token) return handleLogout();
+
+      const payload = {
+        action: currentAction,
+        token: token,
+        id: document.getElementById("post-id").value,
+        subject: document.getElementById("post-subject").value,
+        title: document.getElementById("post-title").value,
+        content: document.getElementById("post-content").value,
+        date: document.getElementById("post-date").value,
+        link: document.getElementById("post-link").value,
+        fileName: document.getElementById("post-filename").value,
+        fileData: document.getElementById("post-filedata").value
+      };
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const resData = await response.json();
+        if (resData.result === "success") {
+          alert(currentAction === "add" ? "Thêm bài viết mới thành công!" : "Cập nhật bài viết thành công!");
+          closeModal();
+          loadArticles();
+        } else if (resData.result === "unauthorized") {
+          alert("Phiên làm việc hết hạn hoặc Token không hợp lệ.");
+          handleLogout();
+        } else { alert("Lỗi: " + JSON.stringify(resData)); }
+      } catch (err) { alert("Gửi dữ liệu lên Sheets thất bại."); }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
