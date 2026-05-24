@@ -236,10 +236,10 @@
         return;
       }
 
-      if (file.size > 15 * 1024 * 1024) {
-        alert("Kích thước file quá lớn! Vui lòng chọn tài liệu nhỏ hơn 15MB.");
+      if (file.size > 75 * 1024 * 1024) {
+        alert("Kích thước file quá lớn! Vui lòng chọn tài liệu nhỏ hơn 75MB.");
         e.target.value = "";
-        statusLabel.innerText = "❌ File bị từ chối do quá nặng (>15MB).";
+        statusLabel.innerText = "❌ File bị từ chối do quá nặng (>75MB).";
         return;
       }
 
